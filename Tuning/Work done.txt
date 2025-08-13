@@ -1,0 +1,62 @@
+
+In the contract, it is said that the lidar is not seeing anything more than 4m and it is happening as the code is changed from old code to new code, inferring that it is a software issue, After a long time of trouble shooting for possible software issue in lidar, I figured that it is indeed a hardware issue and it is happening as the lidar is not perfectly aligned with the ground. 
+
+As the alignment is not perfect, it hits on the ground at 4m and returns those readings. This is the reason for the issue you are facing. To solve this several ideas are proposed,
+
+1) To increase the height of the lidar placement
+2) To make the lidar perfectly parallel to the ground
+3) To ignore the readings which come from reflection off the ground
+
+After a long discussion with Tiara, we could not conclude any of these solutions, So I came up with another method, Instead of seeing all the point in front of the 60 degree angle, we only see points which are straight to use, assuming the car's front is pointed in the y axis and the line connecting the front two wheels are the x axis, we calculate the value of x and y for all the points from the lidar, we have declared a parameter named lane width, if the x is lesser than the negative of the lane width or greater than the lane width value, we ignore that point as it is not infront of us. Using this kind of filtering, the lidar issue got solved perfectly.
+
+So once the lidar issue got resolved the code is also changed from the old code to the new code as per the requirements.
+
+Then coming to the next issue of the robot stopping when the obstacle coming close to 2m and it is stopped even after the obstacle left. This behaviour is happening as the driver is not able to make the motor start from rest, so when the motor is stopped the driver is not able to start it without an external push. This is because motors take large amount of current to start from rest, since the driver could not provide it we have to manually nudge it a little. This issue can be solved by changing the driver to a more powerful and robust driver. 
+
+As a temporary fix for this problem I have made a small change that instead of stopping, I made it to rotate at a very low speed, so that it need not start from rest and therefore do not need large amount of current which the driver could not supply. So this solved the issue.
+
+
+Then Tiara wanted to implement Ziegler Nichols Tuning in the system, So i have written program for finding the value of Ku for tuning. I have written program to show the accuracy of normal control without PID and control with PID for you to decide on what to use. Anyways the value of Ku is found, using that kp, ki, kd values are found as well and are implemented in the actual code. 
+
+For LSTM, it cannot be implemented as we do not have any tracking like object tracking, so LSTM cannot be implemented in this situation and it is not needed as well. 
+
+
+All the code is stored in the jetson in the folder new_catkin_ws, the program can be ran by the following commands
+
+cd new_catkin_ws
+source devel/setup.bash
+roslaunch wp_ex acc_system.launch
+
+This starts the lidar node and publishes the ros topic for Teensy to read.
+
+The code for teensy is attached in this folder for your reference,
+The following code for teensy are attached,
+
+1) The actual main code (main.ino) which gets the data from the ros topic and control the wheels accordingly
+2) The code for finding the value of Ku and T for ziegler Nichols method (ziegler_nichols_test.ino)
+3) The code for finding the maximum speed of the wheel (speed_test.ino)
+
+To help you decide on the usage of PID, two plots are provided as well, 
+
+1) PID control plot which  shows the characteristic of PID control of wheels (Ziegler_nichols_control.jpg)
+2) Normal control plot which shows the characteristic of normal control of wheels (Normal_control.jpg)
+
+
+
+
+
+
+Ziegler Nicohls Experiment result:
+
+In the image attached as ZieglerNichols.jpg, the kp value was set to 1, it starts to oscillate infinitely. So this is the correct ku value.
+Then from the graph we can infer that there are 15 time steps between each cycle, since our points come at approximately 0.1 s, this makes our time period of oscillation as 1.5 second
+
+As fine tuned values are 
+kp = 0.6 ku, kp = 0.6 * 1 = 0.6
+Ki = 2 * kp / t, ki = 2 * 0.6 / 1.5 = 0.8
+kd = kp * t / 8 = 0.6 * 1.5 / 8 = 0.1125
+
+
+These values are then set in the main program(main.ino)
+  
+
